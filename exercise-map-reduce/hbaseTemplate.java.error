@@ -1,0 +1,53 @@
+import org.apache.hadoop.conf.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.Mapper.Context;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.Scan;
+
+public class hbaseTemplate extends Dictionary {
+
+	// https://www.youtube.com/watch?v=0EC5D4BCkg4&list=PLkp40uss1kSIVC891Bv2HZiFmTBdk3j9v&index=15
+
+	Configuration conf = HBaseConfiguration.create();
+	Job job = new Job(conf, "myjob");
+	//job.setJarByClass(hbaseTemplate.class);
+	Scan scan = new Scan();
+
+	TableMapReduceUtil.initTableMapperJob(sourceTable,
+	scan, 
+	MyMapper.class, 
+	Text.class,
+			  IntWritable.class,
+			  job);
+	  
+	  TableMapReducerUtil.initTableReducerJob(
+			  targetTable,
+			  MyReducer.class,
+			  job);
+	  
+	  job.setNumReducerTasks(1); //we don't have reduce task in this job
+	  System.exit(job.waitforCompletion(true) ? 0 :1 );
+	  
+	  static class MyMapper extends TableMapper<Text, Intwritable> {
+		  private final IntWritable ONE = new IntWritable(1);
+		  private Text key = new Text();
+		  
+		  public void map(ImmuntableBytesWritable row, Result value, Context context) throws Exception {
+			  String val = Bytes.toStringBinary(value.getValue());
+			  key.set(val);
+			  context.write(key, ONE);
+		  }
+	  }
+	  
+	  static class MyReducer extends TableReducer<Text, IntWritable, ImmuntableBytesWritable> {
+		  public void reduce(Text key, Iterable<IntWritable> values, Context context){
+			  int i = 0;
+			  for (IntWritable val : values) {i++;}
+			  Put put = new Put(Bytes.toBytes(key.toString()));
+			  put.add(Bytes.toBytes("cf"), Bytes.toBytes("cnt"), Bytes.toBytes(i));
+			  context.write(null,  put);
+		  }
+	  }
+
+}

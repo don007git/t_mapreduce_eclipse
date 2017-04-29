@@ -1,0 +1,7 @@
+WordCount$Reduce.class
+Dictionary.class
+JavaVersion.class
+Dictionary$AllTranslationsReducer.class
+WordCount.class
+Dictionary$WordMapper.class
+WordCount$Map.class
